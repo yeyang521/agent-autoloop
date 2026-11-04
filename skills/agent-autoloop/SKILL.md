@@ -62,6 +62,8 @@ description: 配置 Agent 自动化中台：加规则、接新的事件插件、
 
 第三方仓库根目录放 `agent.ts`、`channel.ts` 或 `source.ts`，用 `agent-autoloop add <git 地址>` 安装到 `~/.agent-autoloop/plugins/<仓库名>`。同名本机插件优先于内置插件，不自动更新。插件是可信代码，先读再装。
 
+OpenCode 用 `use: "opencode"`：内置插件把 `read`/`edit`/`full` 翻译成 `plan`/`build`/`--dangerously-skip-permissions`，会话接续和用量都从 JSON 事件里读；先在该 CLI 登录（`opencode auth login`）。
+
 ACP 用 `use: "acp"` 和 `command: ["ACP 服务程序"]`，支持 v1 的会话新建、恢复、文字与一次性权限请求；先在该 Agent 自己的 CLI 登录。普通命令接法与实测支持范围见 README。
 
 Claude 主任务要委托 Codex 操作网页时，从 `examples/recipes/browser-handoff/` 配置已验收的入口、目标与允许操作，保留返回的 Codex 子会话编号；受阻由主任务交 `ask`，恢复后只续办网页步骤。入口调用模板不提供浏览器连接，也不修改桌面应用或授权。
