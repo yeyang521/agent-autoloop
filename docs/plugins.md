@@ -49,6 +49,8 @@ node --disable-warning=ExperimentalWarning --test --test-name-pattern='agent-aut
 
 只需要打印最后一条消息时，用内置 `command` 加参数数组即可，不必写插件。
 
+内置插件里，`use: "dsh"` 跑 DeepSeek Harness 的 headless profile：会话接续、Token 用量和错误都从 `--json` 事件里读，`read`/`edit`/`full` 对应 `DSH_PERMISSION_MODE` 的三个档位。headless profile 默认关掉了本机凭据库，插件每次启动会在本轮目录补一条 patch 把它打开；模型和 provider 路由仍按 DSH 自己的 profile 配置（`~/.dsh/profiles/headless/cordis.patch.yml`），规则里写 `model` 会按 `provider/model` 覆盖默认模型。
+
 ### 浏览器接入
 
 浏览器工具装在运行 Agent 的电脑上，由该 CLI 的工具配置或项目 Skill 提供。Codex 插件启动的是后台 [`codex exec`](https://developers.openai.com/codex/noninteractive/)；可以使用它已配置的 [MCP 工具](https://developers.openai.com/codex/mcp/)，不能只凭桌面应用能打开网页就认定后台也能访问同一浏览器。
@@ -109,8 +111,9 @@ Claude 委托 Codex 的完整规则、Skill 和参数调用脚本见[浏览器�
 | Codex | `read-only`：能跑 shell，不能写文件，命令默认不能联网 | `workspace-write`：能跑 shell、写工作目录和临时目录，命令默认不能联网 | `danger-full-access`：能写文件、跑 shell、联网，无审批 |
 | Claude Code | `plan`：能读文件和运行只读命令；其他命令取决于自动审批及本机规则 | `acceptEdits`：再允许目录内文件编辑和常见文件操作；任意 shell 或联网仍需放行 | `bypassPermissions`：跳过工具审批，没有额外系统隔离 |
 | OpenCode | `plan`：能读文件和运行只读命令，要求写文件会被拒绝 | `build`：能读写工作目录、跑 shell；工作目录外的路径要单独放行 | `build --dangerously-skip-permissions`：自动放行未明确拒绝的权限 |
+| DeepSeek Harness | `read-only`：能读，写文件和越界操作直接拒绝 | `workspace-write`：能读写工作目录和临时目录，工作目录外直接拒绝 | `danger-full-access`：能写文件、跑 shell、联网，无审批 |
 
-Codex 和 OpenCode 的三个档位已用插件命令实跑（OpenCode 的 `read` 实测拒绝写文件）；Claude Code 依据[官方权限说明](https://code.claude.com/docs/en/permission-modes)整理，没有调用模型实跑。Codex 的命令网络限制与托管搜索、MCP 不是同一个边界，详见[官方沙箱说明](https://learn.chatgpt.com/docs/agent-approvals-security)。用户的 CLI 配置可能改变上述能力；`read` 也不代表读不到本机密钥。
+Codex、OpenCode 和 DeepSeek Harness 的三个档位已用插件命令实跑（OpenCode 的 `read`、DSH 的 `edit` 实测拒绝写工作目录外的文件）；Claude Code 依据[官方权限说明](https://code.claude.com/docs/en/permission-modes)整理，没有调用模型实跑。Codex 的命令网络限制与托管搜索、MCP 不是同一个边界，详见[官方沙箱说明](https://learn.chatgpt.com/docs/agent-approvals-security)。用户的 CLI 配置可能改变上述能力；`read` 也不代表读不到本机密钥。DSH 的 headless profile 没有审批通道，越界操作是直接拒绝而不是等人批准，所以 `access` 就是它实际能碰的范围。
 
 场景模板据此选权限：早报用 `edit` 写本地文件，issue 用 `edit` 改代码并让固定脚本联网取正文，告警用 `read` 看代码和事件附带的调用栈。反馈处理和飞书摘要用 `edit`，网站排查用 `read`；固定巡检与飞书读取脚本负责联网，摘要 Agent 只读完整快照。`command` 和固定脚本以本机账号运行，不受 `access` 约束。
 

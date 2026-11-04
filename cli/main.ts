@@ -18,7 +18,7 @@ const PROGRAM = path.join(ROOT, "bin", "agent-autoloop.ts");
 
 const HELP = `Agent 自动化中台
 
-  agent-autoloop init [--agent claude|codex|opencode] [--command '某个命令 {prompt}'] [--port 3350] [--no-service]
+  agent-autoloop init [--agent dsh|claude|codex|opencode] [--command '某个命令 {prompt}'] [--port 3350] [--no-service]
                                     在这台电脑上装好：一个人一台电脑就够
   agent-autoloop try                     用你的 Agent 跑一遍完整流程
   agent-autoloop why <第几轮> [--json]  查看时间线；--json 输出原始事实
@@ -120,7 +120,7 @@ function howToRun() {
 }
 
 /** The usual Agents, in the order a machine with several of them tries them, and what each is called. */
-const USUAL = { claude: "Claude Code", codex: "Codex", opencode: "OpenCode" } as const;
+const USUAL = { dsh: "DeepSeek Harness", claude: "Claude Code", codex: "Codex", opencode: "OpenCode" } as const;
 
 /** What was asked for on the command line, or whichever of the usual Agents is installed. */
 async function agentsToUse(named: Flags, worker: string) {
@@ -165,7 +165,7 @@ async function init(args: string[]) {
   const agents = await agentsToUse(named, worker);
   if (!Object.keys(agents).length) {
     return fail(
-      "这台电脑上没找到 Claude Code、Codex 或 OpenCode。先装好并登录，" +
+      "这台电脑上没找到 DeepSeek Harness、Claude Code、Codex 或 OpenCode。先装好并登录，" +
         "或者用 --command 指定别的命令行 Agent，比如 --command 'hermes chat -q {prompt}'",
     );
   }

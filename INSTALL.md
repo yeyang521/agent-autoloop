@@ -24,7 +24,7 @@ GitHub Issue 轮询和 PR 交付等功能另需已登录的 `gh`，按对应场�
 AGENT_AUTOLOOP_REPO=/path/to/agent-autoloop sh /path/to/agent-autoloop/install.sh --agent codex
 ```
 
-`--agent claude` 选择 Claude Code，`--agent opencode` 选择 OpenCode；只有其他 CLI 时加 `--command 'hermes chat -q {prompt}'`。不指定时会检测本机安装的 Agent，第一种作为试跑对象。
+`--agent dsh` 选择 DeepSeek Harness，`--agent claude` 选择 Claude Code，`--agent opencode` 选择 OpenCode；只有其他 CLI 时加 `--command 'hermes chat -q {prompt}'`。不指定时会检测本机安装的 Agent，第一种作为试跑对象。
 
 程序装进 `~/.agent-autoloop/app`，配置和记录留在 `~/.agent-autoloop`。默认打开桌面通知；没有图形会话时安静跳过，问题仍能用 `agent-autoloop status` 查看。命令优先放在 PATH 中的 `~/.local/bin`，否则选 PATH 里第一个可写目录，不用 sudo、不覆盖其他程序；没有位置时使用安装器打印的完整路径。
 
