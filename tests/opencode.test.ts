@@ -2,7 +2,8 @@
 // permissions unasked; a resumed run starts a new conversation instead of going on; the run's own folder isn't allowed,
 // so the agent can't read the context file it was told about; the JSON stream's missing last text event is taken for an
 // answer of nothing; an error event is taken for a finished answer; a turn that got going doesn't say so, so a broken
-// one is redone from scratch in a new session; the session isn't picked out.
+// one is redone from scratch in a new session; the session isn't picked out; what the steps cost is dropped, so a run
+// that was paid for looks free, or a step that says nothing about money turns into a price of zero.
 import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -82,6 +83,20 @@ test("OpenCode: only what it ends with is its answer", () => {
   assert.equal(reading.session, "s");
   assert.equal(reading.started, true);
   assert.deepEqual(reading.usage, { input: 9, output: 2, cached: 3 });
+});
+
+test("OpenCode: what the steps cost is added up, and only what was said", () => {
+  const step = (cost: number | undefined, input: number) => ({
+    type: "step_finish",
+    sessionID: "s",
+    part: { messageID: "m1", tokens: { input, output: 1 }, ...(cost === undefined ? {} : { cost }) },
+  });
+  const priced = adapter.read(lines(started, step(0.002, 5), step(0.0005, 4)), 0, "");
+  assert.deepEqual(priced.usage, { input: 9, output: 2, cached: 0, cost: 0.0025 });
+  // Zero is a price someone reported; a step that says nothing about money leaves it missing, not free.
+  const unpriced = adapter.read(lines(started, step(undefined, 5)), 0, "").usage;
+  assert.equal(unpriced!.cost, undefined);
+  assert.deepEqual(unpriced, { input: 5, output: 1, cached: 0 });
 });
 
 test("OpenCode: a turn that got going says so, however it ended", () => {

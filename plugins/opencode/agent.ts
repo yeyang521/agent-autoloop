@@ -5,6 +5,7 @@
 // in, and a headless run has nobody to answer, so the run's own folder (which holds context.json) is allowed up front.
 // And its JSON stream can end without the last text event, so an answer that isn't there is read back from the session.
 import { execFileSync } from "node:child_process";
+import { addUsage, type Usage } from "../../protocol/validate.ts";
 import { findProgram, tail, type Adapter } from "../../worker/agents.ts";
 
 /** Which built-in agent carries which permission: plan reads but won't write; build does both. */
@@ -24,9 +25,22 @@ type Event = {
     messageID?: string;
     text?: string;
     tokens?: { input?: number; output?: number; cache?: { read?: number } };
+    /** What this step was charged, in dollars. */
+    cost?: number;
   };
   error?: { message?: string; data?: { message?: string } };
 };
+
+/** A step's tokens and what it was charged: a step that says nothing about money adds no price, not a price of zero. */
+function used(part: Event["part"]): Usage | undefined {
+  const tokens = part?.tokens;
+  const cost = part?.cost;
+  if (!tokens && typeof cost !== "number") return undefined;
+  return {
+    ...(tokens && { input: tokens.input ?? 0, output: tokens.output ?? 0, cached: tokens.cache?.read ?? 0 }),
+    ...(typeof cost === "number" && { cost }),
+  };
+}
 
 /** The stream can end without its last text event; the session keeps the message it belonged to. */
 function readBack(session: string | undefined, message: string | undefined) {
@@ -76,15 +90,7 @@ export default {
     const started = events.some((event) =>
       ["step_start", "text", "tool_use", "step_finish"].includes(event.type ?? ""),
     );
-    const usage = events.reduce<{ input: number; output: number; cached: number } | undefined>((total, event) => {
-      const tokens = event.part?.tokens;
-      if (!tokens) return total;
-      return {
-        input: (total?.input ?? 0) + (tokens.input ?? 0),
-        output: (total?.output ?? 0) + (tokens.output ?? 0),
-        cached: (total?.cached ?? 0) + (tokens.cache?.read ?? 0),
-      };
-    }, undefined);
+    const usage = events.reduce<Usage | undefined>((total, event) => addUsage(total, used(event.part)), undefined);
     // What it has taken so far is known every time; whether it started is only ever said when it did.
     const known = { ...(session && { session }), ...(started && { started: true }), ...(usage && { usage }) };
     // While it runs, what it has said so far is not its answer.
